@@ -20,12 +20,14 @@ from investiq.models import (
     CycleStep,
     Instrument,
     LeaderboardEntry,
+    PriceBar,
     Recommendation,
     Report,
     ResearchCycle,
     Score,
     TfsaProfile,
 )
+from investiq.reports.pricing import price_block
 from investiq.research import locking
 from investiq.research.report import _markets
 from investiq.services import portfolio_view
@@ -115,19 +117,19 @@ def leaderboards(cycle_id: int | None = None, s: Session = Depends(db)) -> dict[
             "confidence": sc.confidence, "coverage": sc.coverage,
             "assessment": rec.assessment if rec else None, "why_not_now": rec.why_not_now if rec else None,
             "brokerage": rec.brokerage_status if rec else None,
-            "price": None if rec is None or rec.price is None else {
-                "price": rec.price, "currency": rec.price_currency, "source": rec.price_source,
-                "as_of": rec.price_as_of.isoformat() if rec.price_as_of else None,
-                "cad": _cad(fx, rec.price, rec.price_currency)},
+            "price": None if rec is None else price_block(
+                rec.price, rec.price_currency, rec.price_as_of.date().isoformat() if rec.price_as_of else None,
+                rec.price_source, _bar_status(s, rec), fx),
         })
     return {"cycle": row(c), "boards": boards}
 
 
-def _cad(fx, price: float, currency: str | None) -> float | None:
-    try:
-        return round(fx.convert(price, currency or "CAD", "CAD")[0], 4)
-    except Exception:  # noqa: BLE001 - missing FX rate shows as unavailable
+def _bar_status(s: Session, rec: Recommendation) -> str | None:
+    """Live/delayed/end-of-day status of the exact bar the recommendation was priced from."""
+    if rec.price_as_of is None or rec.price_source is None:
         return None
+    bar = s.get(PriceBar, (rec.instrument_id, "1d", rec.price_as_of, rec.price_source))
+    return bar.data_status if bar else None
 
 
 @router.get("/recommendations")
@@ -249,3 +251,43 @@ def diversification_what_if(body: WhatIfIn, s: Session = Depends(db)) -> dict[st
             "new_warnings": fit.flags, "detail": fit.detail, "before": before.as_dict(), "after": after.as_dict(),
             "data_problems": problems,
             "note": "Hypothetical only. Nothing is bought; your holdings are unchanged."}
+
+
+@router.get("/screener")
+def screener(kind: str = Query("all", pattern="^(all|stocks|funds)$"), s: Session = Depends(db)) -> dict[str, Any]:
+    """Every instrument scored in the latest completed cycle, with the inputs a screener filters on."""
+    c = _latest_cycle(s)
+    if c is None:
+        return {"cycle": None, "rows": []}
+    now = datetime.now(UTC)
+    fx = repo.fx_table(s, now.date())
+    q = (select(Score, Recommendation, Instrument).join(Recommendation, Recommendation.score_id == Score.id)
+         .join(Instrument, Instrument.id == Score.instrument_id).where(Score.cycle_id == c.id))
+    rows = []
+    for sc, rec, inst in s.execute(q).all():
+        fund = inst.security_type in ("etf", "mutual_fund")
+        if (kind == "stocks" and fund) or (kind == "funds" and not fund):
+            continue
+        bars = repo.daily_bars(s, inst.id, now, lookback_days=10)
+        day = (bars[-1].close / bars[-2].close - 1) * 100 if len(bars) >= 2 else None
+        price = (sc.metrics or {}).get("price", {})
+        fnd = (sc.metrics or {}).get("fundamentals", {})
+        etf = (sc.metrics or {}).get("etf", {})
+        rows.append({
+            "instrument_id": inst.id, "symbol": inst.symbol, "exchange": inst.exchange, "name": inst.name,
+            "asset_class": inst.asset_class, "security_type": inst.security_type, "sector": inst.sector,
+            "country": inst.country, "region": inst.region, "currency": inst.currency, "themes": inst.themes,
+            "overall": sc.overall, "grade": sc.grade, "confidence": sc.confidence, "coverage": sc.coverage,
+            "model": sc.model, "assessment": rec.assessment, "primary_eligible": rec.primary_eligible,
+            "categories": {k: v.get("score") for k, v in (sc.category_scores or {}).items()},
+            "change_1d_pct": None if day is None else round(day, 3),
+            "return_1y_pct": price.get("return_1y_pct"), "return_5y_ann_pct": price.get("return_5y_ann_pct"),
+            "volatility_1y_pct": price.get("volatility_1y_pct"), "max_drawdown_3y_pct": price.get("max_drawdown_3y_pct"),
+            "pe": fnd.get("pe"), "dividend_yield_pct": fnd.get("dividend_yield_pct"),
+            "revenue_growth_1y_pct": fnd.get("revenue_growth_1y_pct"), "mer_pct": inst.mer_pct or fnd.get("expense_ratio_pct"),
+            "holdings_count": etf.get("holdings_count"),
+            "price": None if not bars else price_block(bars[-1].close, bars[-1].currency, bars[-1].ts.date().isoformat(),
+                                                       bars[-1].source, bars[-1].data_status, fx),
+        })
+    rows.sort(key=lambda r: -r["overall"])
+    return {"cycle": row(c), "rows": rows}

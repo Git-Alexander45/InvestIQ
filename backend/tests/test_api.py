@@ -99,6 +99,10 @@ def test_research_endpoints_after_a_cycle(researched, session):
     assert c.get("/api/paper/BM_GLOBAL").json()["orders"]
     assert c.get("/api/market/overview").json()["usd_cad"]["note"].startswith("Daily reference")
     assert isinstance(c.get("/api/news?days=7").json(), list)
+    scr = c.get("/api/screener?kind=stocks").json()["rows"]
+    assert len(scr) == 4 and all(r["security_type"] == "common_stock" for r in scr)
+    assert scr[0]["price"]["cad"] is not None and "growth" in scr[0]["categories"]
+    assert len(c.get("/api/screener?kind=funds").json()["rows"]) == 5
 
 
 def test_instrument_detail_and_chart(researched, session):

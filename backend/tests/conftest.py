@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from collections.abc import Iterator
 
 import pytest
@@ -10,6 +11,8 @@ os.environ.setdefault("INVESTIQ_ENV", "test")
 os.environ.setdefault("INVESTIQ_ENV_FILE", "/nonexistent/.env")
 os.environ.setdefault("INVESTIQ_ALLOW_SYNTHETIC_DATA", "true")
 os.environ.setdefault("INVESTIQ_SCHEDULER_ENABLED", "false")
+# Tests never write logs, backups or exports into the repository.
+os.environ.setdefault("INVESTIQ_DATA_DIR", tempfile.mkdtemp(prefix="investiq-test-"))
 
 import investiq.models  # noqa: E402,F401
 from investiq.config import reset_settings_cache  # noqa: E402
