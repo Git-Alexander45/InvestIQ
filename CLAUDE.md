@@ -57,16 +57,19 @@ Never rely only on conversation history for requirements: the docs are the sourc
 ```bash
 # Backend (from backend/)
 uv venv .venv && . .venv/bin/activate && uv pip install -e ".[dev,mcp]"
-alembic upgrade head                     # migrate (uses INVESTIQ_DATABASE_URL)
+investiq migrate                         # verified backup, then Alembic migrations (INVESTIQ_DATABASE_URL)
 investiq bootstrap                       # seed universe, strategies, portfolios
 investiq serve                           # API on 127.0.0.1:8765 (+ in-process scheduler)
 investiq run-cycle --if-due              # daily research cycle (idempotent)
 python -m pytest                         # tests (SQLite); set INVESTIQ_TEST_DATABASE_URL for PostgreSQL
 ruff check investiq tests
 
-# Frontend (from frontend/)
+# Frontend (from frontend/); the proxy needs INVESTIQ_API_TOKEN in its environment
 npm install && npm run dev               # http://127.0.0.1:3000
-npm run build && npm run typecheck
+npm test && npm run typecheck && npm run build
 
-# Windows: scripts/windows/*.ps1 (install, start, register daily task, backup)
+# Database for development: docker compose up -d db   (needs .env; see .env.example)
+
+# Windows (scripts/windows/): install.ps1, start.ps1, stop.ps1, run-cycle.ps1,
+# register-task.ps1 (daily task), backup.ps1. See docs/INSTALL.md.
 ```

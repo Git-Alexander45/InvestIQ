@@ -1,0 +1,29 @@
+# InvestIQ database (PostgreSQL 16 + TimescaleDB), local only.
+# - Published on 127.0.0.1 only: not reachable from other computers on the network.
+# - No Docker socket and no host folders are mounted; data lives in a named Docker volume.
+# - Credentials come from the .env file (created by scripts/windows/install.ps1).
+services:
+  db:
+    image: timescale/timescaledb:2.17.2-pg16
+    container_name: investiq-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${INVESTIQ_DB_NAME:-investiq}
+      POSTGRES_USER: ${INVESTIQ_DB_USER:-investiq}
+      POSTGRES_PASSWORD: ${INVESTIQ_DB_PASSWORD:?set INVESTIQ_DB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${INVESTIQ_DB_PORT:-5432}:5432"
+    volumes:
+      - investiq-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${INVESTIQ_DB_USER:-investiq} -d ${INVESTIQ_DB_NAME:-investiq}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    security_opt:
+      - no-new-privileges:true
+    shm_size: 256mb
+
+volumes:
+  investiq-pgdata:
+    name: investiq-pgdata

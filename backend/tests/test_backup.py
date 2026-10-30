@@ -49,6 +49,7 @@ def test_backup_verify_and_restore_test(file_db):
     assert Path(rec.path + ".json").exists()
     backup.verify_backup(s, rec)
     assert rec.status == "verified", rec.verification
+    assert sorted(p.name for p in Path(rec.path).parent.iterdir()) == sorted([Path(rec.path).name, Path(rec.path).name + ".json"])
     report = backup.restore_test(s, eng, rec)
     assert report["ok"], report
     assert rec.restore_tested_at is not None
@@ -108,3 +109,11 @@ def test_docker_mode_never_puts_password_on_command_line(monkeypatch):
     assert cmd[:3] == ["docker", "compose", "-f"] and "exec" in cmd and "s3cret" not in " ".join(cmd)
     assert backup._pg_env(url)["PGPASSWORD"] == "s3cret"
     reset_settings_cache()
+
+
+def test_export_neutralises_spreadsheet_formulas():
+    assert backup._csv_cell("=HYPERLINK(\"http://x\")") == "'=HYPERLINK(\"http://x\")"
+    assert backup._csv_cell("@SUM(A1)") == "'@SUM(A1)"
+    assert backup._csv_cell("Fed holds rates") == "Fed holds rates"
+    assert backup._csv_cell(-1.5) == -1.5
+    assert backup._csv_cell({"a": 1}) == '{"a": 1}'

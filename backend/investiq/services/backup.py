@@ -22,6 +22,7 @@ import stat
 import subprocess
 import tempfile
 import zipfile
+from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -125,8 +126,14 @@ def create_backup(session: Session, engine: Engine, *, reason: str = "scheduled"
         if not src_path or src_path == ":memory:":
             raise BackupError("in-memory SQLite databases cannot be backed up")
         dest, method = out_dir / f"investiq-{stamp}.sqlite3", "sqlite_backup"
-        with sqlite3.connect(src_path) as src, sqlite3.connect(dest) as dst:
+        src, dst = sqlite3.connect(src_path), sqlite3.connect(dest)
+        try:
             src.backup(dst)
+            # A self-contained file: opening a WAL-mode copy would leave -wal/-shm files beside it.
+            dst.execute("PRAGMA journal_mode=DELETE")
+        finally:
+            dst.close()
+            src.close()
     else:
         raise BackupError(f"unsupported database dialect {engine.dialect.name}")
     _restrict(dest)
@@ -152,7 +159,7 @@ def verify_backup(session: Session, rec: BackupRecord, settings: Settings | None
         if _sha256(path) != rec.sha256:
             raise BackupError("checksum mismatch: the file changed or is corrupt")
         if rec.method == "sqlite_backup":
-            with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+            with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as conn:
                 ok = conn.execute("PRAGMA integrity_check").fetchone()[0]
             if ok != "ok":
                 raise BackupError(f"sqlite integrity_check: {ok}")
@@ -239,6 +246,18 @@ def disk_usage(settings: Settings | None = None) -> dict[str, Any]:
             "note": "Old backups are never deleted automatically. Remove files manually if space is needed."}
 
 
+FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_cell(v: Any) -> Any:
+    """Text from outside sources (news headlines, notes) must not run as a spreadsheet formula."""
+    if isinstance(v, dict | list):
+        v = json.dumps(v, default=str)
+    if isinstance(v, str) and v.startswith(FORMULA_PREFIXES):
+        return "'" + v
+    return v
+
+
 def export_data(engine: Engine, dest_dir: Path, tables: list[str] | None = None) -> Path:
     """Write every table (or a subset) as CSV into one zip file the owner can open in a spreadsheet."""
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -251,9 +270,10 @@ def export_data(engine: Engine, dest_dir: Path, tables: list[str] | None = None)
             cols = [c.name for c in table.columns]
             w.writerow(cols)
             for row in conn.execute(select(table)).yield_per(5000):
-                w.writerow([json.dumps(v, default=str) if isinstance(v, dict | list) else v for v in row])
+                w.writerow([_csv_cell(v) for v in row])
             zf.writestr(f"{table.name}.csv", buf.getvalue())
         zf.writestr("README.txt", "InvestIQ data export. One CSV per table; JSON columns are JSON-encoded. "
-                                  "Timestamps are UTC.\n")
+                                  "Timestamps are UTC. Text starting with = + - @ is prefixed with ' so "
+                                  "spreadsheets never run it as a formula.\n")
     _restrict(out)
     return out

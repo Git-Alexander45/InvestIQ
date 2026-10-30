@@ -1,22 +1,27 @@
 // Server-side proxy to the local InvestIQ API. It adds the API token, which therefore never
 // reaches the browser, and only forwards well-formed API paths to the configured local backend.
 import { NextRequest } from "next/server";
+import { DEFAULT_DASHBOARD_HOSTS, proxyTarget, requestAllowed } from "@/lib/proxyPath";
 
 const API = process.env.INVESTIQ_API_URL ?? "http://127.0.0.1:8765";
 const TOKEN = process.env.INVESTIQ_API_TOKEN ?? "";
-const SAFE_SEGMENT = /^[A-Za-z0-9._-]+$/;
 const MAX_BODY = 2_000_000;
+const HOSTS = process.env.INVESTIQ_DASHBOARD_HOSTS?.split(",") ?? DEFAULT_DASHBOARD_HOSTS;
 
 async function forward(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
+  const allowed = requestAllowed({
+    method: req.method,
+    host: req.headers.get("host"),
+    origin: req.headers.get("origin"),
+    secFetchSite: req.headers.get("sec-fetch-site"),
+  }, HOSTS);
+  if (!allowed) return Response.json({ detail: "forbidden" }, { status: 403 });
   if (!TOKEN) {
     return Response.json({ detail: "INVESTIQ_API_TOKEN is not set for the dashboard (see docs/INSTALL.md)." }, { status: 503 });
   }
-  if (!path.every((p) => SAFE_SEGMENT.test(p) && p !== ".." && p !== ".")) {
-    return Response.json({ detail: "invalid path" }, { status: 400 });
-  }
-  const url = new URL(`/api/${path.join("/")}`, API);
-  url.search = req.nextUrl.search;
+  const url = proxyTarget(API, path, req.nextUrl.search);
+  if (!url) return Response.json({ detail: "invalid path" }, { status: 400 });
   const headers: Record<string, string> = { Authorization: `Bearer ${TOKEN}` };
   const ctype = req.headers.get("content-type");
   if (ctype) headers["Content-Type"] = ctype;
