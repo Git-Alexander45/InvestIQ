@@ -154,7 +154,9 @@ def test_rss_parsing_rss_and_atom_and_xxe_safe():
     assert parse_feed(atom, "a", None, False)[0].url == "https://x.test/b"
     evil = """<?xml version="1.0"?><!DOCTYPE r [<!ENTITY x SYSTEM "file:///etc/passwd">]><rss><channel>
       <item><title>&x;</title><link>https://x.test</link></item></channel></rss>"""
-    with pytest.raises(Exception):
+    from defusedxml.common import DTDForbidden, EntitiesForbidden, ExternalReferenceForbidden
+
+    with pytest.raises((DTDForbidden, EntitiesForbidden, ExternalReferenceForbidden)):
         parse_feed(evil, "e", None, False)
 
 

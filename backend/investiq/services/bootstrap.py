@@ -129,8 +129,8 @@ def ensure_default_watchlist(session: Session) -> None:
         session.add(Watchlist(name="My Watchlist", description="Default watchlist"))
 
 
-def bootstrap(session: Session) -> dict[str, int]:
-    added = seed_universe(session)
+def bootstrap(session: Session, universe_path: Path | None = None) -> dict[str, int]:
+    added = seed_universe(session, universe_path)
     sources = seed_news_sources(session)
     ensure_portfolios(session)
     ensure_default_watchlist(session)

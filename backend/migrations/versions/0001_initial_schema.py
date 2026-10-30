@@ -497,7 +497,7 @@ def upgrade() -> None:
     sa.Column('reserved_cad', sa.Float(), nullable=False),
     sa.Column('cost_usd', sa.Float(), nullable=False),
     sa.Column('usd_cad_rate', sa.Float(), nullable=False),
-    sa.Column('usd_cad_source', sa.String(length=64), nullable=False),
+    sa.Column('usd_cad_source', sa.String(length=160), nullable=False),
     sa.Column('cost_cad', sa.Float(), nullable=False),
     sa.Column('pricing_version', sa.String(length=64), nullable=False),
     sa.Column('latency_ms', sa.Integer(), nullable=True),

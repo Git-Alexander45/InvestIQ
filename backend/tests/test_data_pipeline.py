@@ -4,7 +4,14 @@ import pytest
 from sqlalchemy import select
 
 from investiq.data import ingest, repository
-from investiq.data.providers.base import BarDTO, BarsResult, FundamentalsDTO, HoldingDTO, HoldingsDTO, InstrumentRef
+from investiq.data.providers.base import (
+    BarDTO,
+    BarsResult,
+    FundamentalsDTO,
+    HoldingDTO,
+    HoldingsDTO,
+    InstrumentRef,
+)
 from investiq.data.providers.synthetic import SyntheticProvider
 from investiq.data.stats import price_stats
 from investiq.data.validation import discrepancy, staleness, validate_bars

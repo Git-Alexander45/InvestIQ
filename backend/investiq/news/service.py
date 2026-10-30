@@ -10,7 +10,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from investiq.data.providers.base import NewsDTO, ProviderError
-from investiq.models import EtfHolding, EtfHoldingsSnapshot, Instrument, NewsAssessment, NewsCluster, NewsItem, NewsSource
+from investiq.models import (
+    EtfHolding,
+    EtfHoldingsSnapshot,
+    Instrument,
+    NewsAssessment,
+    NewsCluster,
+    NewsItem,
+    NewsSource,
+)
 from investiq.news import classify, dedupe
 
 log = logging.getLogger(__name__)

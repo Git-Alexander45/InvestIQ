@@ -125,6 +125,9 @@ class MarketData(BaseModel):
     fx_provider: Literal["bank_of_canada", "synthetic"] = "bank_of_canada"
     stale_after_days: int = Field(4, ge=1, le=30)
     discrepancy_tolerance_pct: float = Field(1.0, gt=0, le=50)
+    # Protects free-tier provider quotas. The first run backfills history, so it may take a few
+    # cycles to fill the whole universe; instruments not reached keep their stored data.
+    max_provider_calls_per_cycle: int = Field(600, ge=10, le=20_000)
 
 
 class PaperTrading(BaseModel):

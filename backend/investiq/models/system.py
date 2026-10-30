@@ -34,7 +34,7 @@ class AiRequest(Base):
     reserved_cad: Mapped[float] = mapped_column(Float, default=0.0)
     cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
     usd_cad_rate: Mapped[float] = mapped_column(Float)
-    usd_cad_source: Mapped[str] = mapped_column(String(64))
+    usd_cad_source: Mapped[str] = mapped_column(String(160))
     cost_cad: Mapped[float] = mapped_column(Float, default=0.0)
     pricing_version: Mapped[str] = mapped_column(String(64))
     latency_ms: Mapped[int | None] = mapped_column(Integer)

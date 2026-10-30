@@ -47,7 +47,8 @@ class ResearchCycle(Base):
     __tablename__ = "research_cycles"
     __append_only__ = True
     __mutable_columns__ = frozenset(
-        {"status", "finished_at", "heartbeat_at", "error", "summary", "ai_cost_cad", "degraded_reasons"}
+        {"status", "finished_at", "heartbeat_at", "error", "summary", "ai_cost_cad", "degraded_reasons",
+         "strategy_version_id"}
     )
     __table_args__ = (UniqueConstraint("cycle_date", "kind", "attempt"),)
 
