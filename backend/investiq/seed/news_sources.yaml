@@ -1,0 +1,11 @@
+# Official and permitted public feeds. Only headline, link, time and a short excerpt are stored.
+# verified: whether the feed URL was confirmed reachable by InvestIQ maintainers; unverified feeds
+# are enabled but any fetch error is reported in the cycle log rather than stopping the cycle.
+sources:
+  - {key: fed_press, name: Federal Reserve press releases, kind: rss, url: "https://www.federalreserve.gov/feeds/press_all.xml", category: central_bank, official: true}
+  - {key: boc_press, name: Bank of Canada press releases, kind: rss, url: "https://www.bankofcanada.ca/content_type/press-releases/feed/", category: central_bank, official: true}
+  - {key: ecb_press, name: European Central Bank press, kind: rss, url: "https://www.ecb.europa.eu/rss/press.html", category: central_bank, official: true}
+  - {key: bls_latest, name: US Bureau of Labor Statistics releases, kind: rss, url: "https://www.bls.gov/feed/bls_latest.rss", category: economic_reports, official: true}
+  - {key: sec_press, name: US SEC press releases, kind: rss, url: "https://www.sec.gov/news/pressreleases.rss", category: regulation, official: true}
+  - {key: eia_today, name: US EIA Today in Energy, kind: rss, url: "https://www.eia.gov/rss/todayinenergy.xml", category: energy, official: true}
+  - {key: statcan_daily, name: Statistics Canada The Daily, kind: rss, url: "https://www150.statcan.gc.ca/n1/dai-quo/ssi/homepage/rss/the-daily-eng.xml", category: economic_reports, official: true}
