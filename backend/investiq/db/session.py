@@ -6,6 +6,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 
 from sqlalchemy import Engine, create_engine, event
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from investiq.config import get_settings
@@ -27,7 +28,7 @@ def build_engine(url: str) -> Engine:
     kwargs: dict = {"future": True, "pool_pre_ping": True}
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}
-        if ":memory:" in url or url.rstrip("/") == "sqlite://":
+        if make_url(url).database in (None, "", ":memory:"):  # one shared in-memory DB across threads
             from sqlalchemy.pool import StaticPool
 
             kwargs["poolclass"] = StaticPool

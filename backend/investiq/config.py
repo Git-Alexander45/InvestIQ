@@ -58,6 +58,13 @@ class Settings(BaseSettings):
     smtp_starttls: bool = True
     email_from: str | None = None
 
+    # Backups. "local" runs pg_dump/pg_restore from PATH or pg_bin_dir; "docker" runs them inside
+    # the compose database service (docker compose exec), so no client tools are needed on Windows.
+    pg_tools_mode: Literal["local", "docker"] = "local"
+    pg_bin_dir: Path | None = None
+    docker_compose_file: Path = REPO_ROOT / "docker-compose.yml"
+    docker_db_service: str = "db"
+
     # Synthetic fixtures are for development only and are refused in production.
     allow_synthetic_data: bool = False
 

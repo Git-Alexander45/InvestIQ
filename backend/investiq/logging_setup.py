@@ -27,14 +27,24 @@ class RedactingFilter(logging.Filter):
         return True
 
 
-def configure_logging(level: str = "INFO") -> None:
+def configure_logging(level: str = "INFO", log_file: str | None = None) -> None:
+    """Console logging, plus a rotating file (5 x 5 MB) when ``log_file`` is given. Log files are
+    operational diagnostics, not investment history; research history lives in the database."""
     root = logging.getLogger()
     if getattr(root, "_investiq_configured", False):
         return
-    handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
-    handler.addFilter(RedactingFilter())
-    root.addHandler(handler)
+    fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+    handlers: list[logging.Handler] = [logging.StreamHandler()]
+    if log_file:
+        from logging.handlers import RotatingFileHandler
+        from pathlib import Path
+
+        Path(log_file).parent.mkdir(parents=True, exist_ok=True)
+        handlers.append(RotatingFileHandler(log_file, maxBytes=5_000_000, backupCount=5, encoding="utf-8"))
+    for handler in handlers:
+        handler.setFormatter(fmt)
+        handler.addFilter(RedactingFilter())
+        root.addHandler(handler)
     root.setLevel(level.upper())
     for noisy in ("httpx", "httpcore", "anthropic"):
         logging.getLogger(noisy).setLevel(logging.WARNING)

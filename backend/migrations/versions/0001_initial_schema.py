@@ -44,7 +44,7 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('path', sa.String(length=1024), nullable=False),
     sa.Column('method', sa.String(length=24), nullable=False),
-    sa.Column('size_bytes', sa.Integer(), nullable=False),
+    sa.Column('size_bytes', sa.BigInteger(), nullable=False),
     sa.Column('sha256', sa.String(length=64), nullable=False),
     sa.Column('row_counts', sa.JSON().with_variant(postgresql.JSONB(astext_type=Text()), 'postgresql'), nullable=False),
     sa.Column('status', sa.String(length=16), nullable=False),
