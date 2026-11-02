@@ -16,7 +16,6 @@ os.environ.setdefault("INVESTIQ_DATA_DIR", tempfile.mkdtemp(prefix="investiq-tes
 
 import investiq.models  # noqa: E402,F401
 from investiq.config import reset_settings_cache  # noqa: E402
-from investiq.db.base import Base  # noqa: E402
 from investiq.db.session import build_engine, set_engine  # noqa: E402
 
 TEST_DB_URL = os.environ.get("INVESTIQ_TEST_DATABASE_URL", "sqlite://")
@@ -32,11 +31,9 @@ def engine(tmp_path, monkeypatch):
     eng = build_engine(TEST_DB_URL)
     if TEST_DB_URL.startswith("postgresql"):
         _reset_postgres(eng)
-        from investiq.db.migrate import upgrade
+    from investiq.db.migrate import upgrade
 
-        upgrade(eng)
-    else:
-        Base.metadata.create_all(eng)
+    upgrade(eng)  # migrations (with history-protection triggers) on both databases
     set_engine(eng)
     yield eng
     eng.dispose()

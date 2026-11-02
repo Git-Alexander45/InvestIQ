@@ -146,3 +146,15 @@ def test_price_stats_from_synthetic_history(session):
     assert all(b.ts <= as_of for b in bars)
     earlier = repository.daily_bars(session, inst.id, as_of - timedelta(days=400))
     assert earlier[-1].ts < bars[-1].ts
+
+
+def test_database_triggers_protect_history_even_without_the_orm(engine):
+    from sqlalchemy import text
+    from sqlalchemy.exc import DatabaseError
+
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO audit_log (ts, actor, action, entity_type, detail) "
+                          "VALUES (CURRENT_TIMESTAMP, 'test', 'test.event', 'system', '{}')"))
+    for sql in ("UPDATE audit_log SET actor = 'x'", "DELETE FROM audit_log"):
+        with pytest.raises(DatabaseError, match="historical records are permanent"), engine.begin() as conn:
+            conn.execute(text(sql))
