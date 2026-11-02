@@ -1,0 +1,75 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>{{ subject }}</title></head>
+<body style="margin:0;background:#0b1118;font-family:Segoe UI,Arial,sans-serif;color:#d7e0ea;">
+<div style="max-width:880px;margin:0 auto;padding:20px;">
+{% if synthetic %}
+<div style="background:#7a1f1f;color:#fff;padding:12px 16px;font-weight:700;border-radius:6px;margin-bottom:12px;">
+SYNTHETIC DEVELOPMENT DATA — NOT REAL MARKET INFORMATION. Do not use for decisions.</div>
+{% endif %}
+<div style="border-bottom:1px solid #22313f;padding-bottom:10px;margin-bottom:12px;">
+  <div style="font-size:12px;letter-spacing:.12em;color:#5fb3a1;">INVESTIQ DAILY RESEARCH</div>
+  <div style="font-size:22px;font-weight:600;color:#fff;">{{ cycle_date }} · status {{ status }}</div>
+  <div style="font-size:12px;color:#8a9aab;">Generated {{ generated_at }} · strategy {{ strategy }} · research only, never an instruction to trade</div>
+  {% if degraded %}<div style="margin-top:8px;padding:8px 10px;background:#3b2f12;color:#f2c96b;border-radius:4px;font-size:13px;">
+  Degraded run: {{ degraded|join('; ') }}</div>{% endif %}
+</div>
+{% macro section(n, title) %}<h2 style="font-size:15px;color:#9fd3c7;margin:22px 0 8px;border-left:3px solid #5fb3a1;padding-left:8px;">{{ n }}. {{ title }}</h2>{% endmacro %}
+{% macro claims(items) %}{% if items %}<ul style="margin:0;padding-left:18px;font-size:13px;">{% for c in items %}<li style="margin:3px 0;">{{ c.text }} <span style="color:#6c7c8c;">[{{ c.evidence|join(', ') }}]</span></li>{% endfor %}</ul>{% else %}<div style="font-size:13px;color:#6c7c8c;">Nothing material.</div>{% endif %}{% endmacro %}
+{% macro newslist(items) %}{% if items %}<table style="width:100%;border-collapse:collapse;font-size:13px;">{% for n in items %}
+<tr style="border-bottom:1px solid #1b2733;"><td style="padding:5px 4px;"><a href="{{ n.url }}" style="color:#cfe3f5;text-decoration:none;">{{ n.title }}</a>
+<div style="color:#6c7c8c;font-size:11px;">{{ n.source }} · published {{ n.published_at or 'unknown' }} · collected {{ n.collected_at }} · {{ n.confirmation }} · {{ n.method }}</div></td>
+<td style="padding:5px 4px;white-space:nowrap;color:{{ '#6fd08c' if n.impact=='positive' else '#f07a7a' if n.impact=='negative' else '#c9b46a' }};">{{ n.impact }} · {{ n.horizon }}</td>
+<td style="padding:5px 4px;color:#8a9aab;">{{ n.affected|join(', ') }}</td></tr>{% endfor %}</table>
+{% else %}<div style="font-size:13px;color:#6c7c8c;">No items collected.</div>{% endif %}{% endmacro %}
+{% macro board(rows) %}{% if rows %}<table style="width:100%;border-collapse:collapse;font-size:13px;">
+<tr style="color:#6c7c8c;text-align:left;"><th style="padding:4px;">#</th><th>Investment</th><th>Grade</th><th>Assessment</th><th>Price</th></tr>
+{% for r in rows %}<tr style="border-bottom:1px solid #1b2733;vertical-align:top;">
+<td style="padding:5px 4px;">{{ r.rank }}</td>
+<td style="padding:5px 4px;"><b style="color:#fff;">{{ r.symbol }}</b>:{{ r.exchange }}<div style="color:#8a9aab;font-size:11px;">{{ r.name }}</div></td>
+<td style="padding:5px 4px;"><b>{{ r.grade }}</b> {{ '%.1f'|format(r.overall) }}<div style="color:#6c7c8c;font-size:11px;">conf {{ '%.2f'|format(r.confidence) }}</div></td>
+<td style="padding:5px 4px;"><b style="color:{{ '#6fd08c' if r.assessment=='BUY' else '#f07a7a' if r.assessment in ('AVOID','SELL') else '#c9b46a' }};">{{ r.assessment }}</b>{% if r.primary %} ✔ primary{% endif %}
+{% if r.why_not_now %}<div style="color:#8a9aab;font-size:11px;">Not now: {{ r.why_not_now }}</div>{% endif %}</td>
+<td style="padding:5px 4px;font-size:11px;color:#a9b6c3;">{{ r.price_text }}</td></tr>{% endfor %}</table>
+<div style="font-size:11px;color:#6c7c8c;">Method: {{ rows[0].method }}</div>
+{% else %}<div style="font-size:13px;color:#6c7c8c;">No qualifying investments today. Waiting is a valid outcome.</div>{% endif %}{% endmacro %}
+
+{{ section(1, "Global market overview") }}
+{% if chief %}<p style="font-size:13px;">{{ chief.market_overview }}</p>{% endif %}
+<table style="width:100%;border-collapse:collapse;font-size:13px;">{% for m in markets %}
+<tr style="border-bottom:1px solid #1b2733;"><td style="padding:4px;">{{ m.label }}</td><td>{{ m.symbol }}</td>
+<td>{{ m.day_change }}</td><td>{{ m.one_year }}</td><td style="font-size:11px;color:#8a9aab;">{{ m.price_text }}</td></tr>{% endfor %}</table>
+{% if fx_line %}<div style="font-size:12px;color:#8a9aab;margin-top:4px;">{{ fx_line }}</div>{% endif %}
+{{ section(2, "Major financial news") }}{{ newslist(news.financial) }}
+{{ section(3, "Important political developments") }}{% if chief %}{{ claims(chief.political_developments) }}{% endif %}{{ newslist(news.political) }}
+{{ section(4, "Economic developments") }}{% if chief %}{{ claims(chief.economic_developments) }}{% endif %}{{ newslist(news.economic) }}
+{{ section(5, "Top investment opportunities") }}{% if chief %}{{ claims(chief.top_conclusions) }}<p style="font-size:13px;color:#a9b6c3;">{{ chief.wait_rationale }}</p>{% endif %}{{ board(boards.best_overall) }}
+{{ section(6, "Best growth stocks") }}{{ board(boards.aggressive_growth_stocks) }}
+{{ section(7, "Best growth ETFs") }}{{ board(boards.diversified_growth_etfs) }}
+{{ section(8, "Best undervalued opportunities") }}{{ board(boards.undervalued) }}
+{{ section(9, "Best dividend opportunities") }}{{ board(boards.dividend_growth) }}
+{{ section(10, "International opportunities") }}{{ board(boards.international) }}
+{{ section(11, "Diversification findings") }}
+{% if diversification %}<div style="font-size:13px;">Asset classes: {{ diversification.asset_classes }}<br>Regions: {{ diversification.regions }}<br>Top sectors: {{ diversification.sectors }}</div>
+<ul style="font-size:13px;padding-left:18px;">{% for f in diversification.flags %}<li>{{ f }}</li>{% else %}<li>No concentration flags.</li>{% endfor %}</ul>
+{% else %}<div style="font-size:13px;color:#6c7c8c;">No holdings entered yet. Add your holdings in Portfolio Analytics to receive a diversification review.</div>{% endif %}
+{{ section(12, "Canadian TFSA opportunities") }}
+<table style="width:100%;font-size:13px;border-collapse:collapse;">{% for label, p in tfsa.picks %}<tr style="border-bottom:1px solid #1b2733;"><td style="padding:4px;">{{ label }}</td>
+<td>{% if p %}<b>{{ p.symbol }}</b> ({{ p.grade }}, {{ p.assessment }}{% if p.primary_eligible %}, verified at both brokerages{% endif %}) · TFSA score {{ '%.1f'|format(p.tfsa_score) }}{% if p.withholding_drag_pct is not none %} · est. withholding drag {{ '%.2f'|format(p.withholding_drag_pct) }} pts/yr{% endif %}{% else %}none qualified{% endif %}</td></tr>{% endfor %}</table>
+<div style="font-size:12px;color:#8a9aab;">Contribution room: {{ tfsa.room }}. Foreign dividend withholding is generally not recoverable inside a TFSA.</div>
+{{ section(13, "Important risks") }}{% if chief %}{{ claims(chief.important_risks) }}{% endif %}
+<ul style="font-size:13px;padding-left:18px;">{% for r in risks %}<li>{{ r }}</li>{% else %}<li>No additional risks flagged.</li>{% endfor %}</ul>
+{{ section(14, "Saved watchlist updates") }}
+<table style="width:100%;font-size:13px;">{% for w in watchlist %}<tr><td>{{ w.symbol }}</td><td>{{ w.watchlist }}</td><td>grade {{ w.grade or '—' }}</td><td>{{ w.assessment or '—' }}</td><td>{{ w.news_count }} news</td></tr>{% else %}<tr><td style="color:#6c7c8c;">No saved investments yet.</td></tr>{% endfor %}</table>
+{{ section(15, "Paper trading performance") }}
+<table style="width:100%;font-size:13px;border-collapse:collapse;"><tr style="color:#6c7c8c;text-align:left;"><th>Portfolio</th><th>Value (CAD)</th><th>Total return</th><th>Max drawdown</th><th>Dividends</th><th>Costs</th></tr>
+{% for p in paper %}<tr style="border-bottom:1px solid #1b2733;"><td style="padding:4px;">{{ p.name }}</td><td>{{ p.value }}</td><td>{{ p.total_return }}</td><td>{{ p.max_dd }}</td><td>{{ p.dividends }}</td><td>{{ p.costs }}</td></tr>{% endfor %}</table>
+<div style="font-size:11px;color:#6c7c8c;">Simulated with virtual capital; no real trades. All portfolios and benchmarks are always reported.</div>
+{{ section(16, "Changes from the previous report") }}
+<ul style="font-size:13px;padding-left:18px;">{% for c in changes %}<li>{{ c }}</li>{% else %}<li>No grade or assessment changes.</li>{% endfor %}</ul>
+{{ section(17, "AI spending summary") }}
+<div style="font-size:13px;">This cycle: {{ ai.cycle_cost }} CAD · Month {{ ai.month }}: {{ ai.spent }} of {{ ai.limit }} CAD (remaining {{ ai.remaining }}) · {{ ai.requests }} requests{% if ai.paused %} · <b style="color:#f2c96b;">AI analysis paused: {{ ai.paused }}</b>{% endif %}</div>
+<div style="font-size:11px;color:#6c7c8c;">The monthly limit is a hard cap and is never raised automatically. Market data, email and other services are separate costs.</div>
+{{ section(18, "Sources and timestamps") }}
+<ul style="font-size:12px;color:#a9b6c3;padding-left:18px;">{% for s in sources %}<li>{{ s }}</li>{% endfor %}</ul>
+<p style="font-size:11px;color:#6c7c8c;margin-top:24px;">{{ disclaimer }}</p>
+</div></body></html>

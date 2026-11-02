@@ -16,9 +16,9 @@ htmlcov/
 *.egg-info/
 
 # Local data (never commit the owner's data)
-data/
-backups/
-outbox/
+/data/
+/backups/
+/outbox/
 *.sqlite3
 *.db
 
