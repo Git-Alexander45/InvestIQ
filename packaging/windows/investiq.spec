@@ -29,9 +29,10 @@ def analysis(script):
 a_main = analysis("launcher.py")
 a_bg = analysis("launcher_background.py")
 
+VERSION_FILE = str(HERE / "version_info.txt")  # publisher/product details shown in the file's properties
 exe_main = EXE(PYZ(a_main.pure), a_main.scripts, [], exclude_binaries=True, name="InvestIQ", console=True,
-               upx=False)
+               upx=False, version=VERSION_FILE)
 exe_bg = EXE(PYZ(a_bg.pure), a_bg.scripts, [], exclude_binaries=True, name="InvestIQ-Background",
-             console=False, upx=False)
+             console=False, upx=False, version=VERSION_FILE)
 
 COLLECT(exe_main, a_main.binaries, a_main.datas, exe_bg, a_bg.binaries, a_bg.datas, name="InvestIQ", upx=False)

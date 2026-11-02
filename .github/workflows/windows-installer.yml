@@ -45,6 +45,20 @@ jobs:
       - name: Build InvestIQ-Setup.exe
         shell: pwsh
         run: packaging/windows/build.ps1
+      - name: Scan the build with Microsoft Defender (latest signatures)
+        shell: pwsh
+        run: |
+          $mp = Get-ChildItem "$env:ProgramData\Microsoft\Windows Defender\Platform\*\MpCmdRun.exe" -ErrorAction SilentlyContinue | Sort-Object FullName | Select-Object -Last 1
+          if (-not $mp) { $mp = Get-Item "$env:ProgramFiles\Windows Defender\MpCmdRun.exe" }
+          & $mp.FullName -SignatureUpdate
+          Get-MpComputerStatus | Select-Object AntivirusSignatureVersion, AntivirusSignatureLastUpdated | Format-List
+          $found = $false
+          foreach ($target in @("$PWD\packaging\windows\dist\InvestIQ", "$PWD\packaging\windows\output")) {
+            & $mp.FullName -Scan -ScanType 3 -File $target -DisableRemediation
+            Write-Host "Defender exit code for ${target}: $LASTEXITCODE"
+            if ($LASTEXITCODE -eq 2) { $found = $true }
+          }
+          if ($found) { Get-MpThreatDetection | Format-List; throw "Microsoft Defender flagged the build" }
       - name: Install silently and smoke-test the installed app
         shell: pwsh
         run: |
@@ -62,7 +76,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: InvestIQ-Setup
-          path: packaging/windows/output/InvestIQ-Setup.exe
+          path: |
+            packaging/windows/output/InvestIQ-Setup.exe
+            packaging/windows/output/SHA256SUMS.txt
           if-no-files-found: error
       - name: Publish release (main branch and v* tags)
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
@@ -72,11 +88,11 @@ jobs:
         run: |
           $version = (python -c 'import investiq; print(investiq.__version__)').Trim()
           $tag = "v$version"
-          $file = 'packaging/windows/output/InvestIQ-Setup.exe'
+          $file = @('packaging/windows/output/InvestIQ-Setup.exe', 'packaging/windows/output/SHA256SUMS.txt')
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag $file --clobber
+            gh release upload $tag @file --clobber
           } else {
-            gh release create $tag $file --target $env:GITHUB_SHA --title "InvestIQ $tag" --notes "Windows installer: download InvestIQ-Setup.exe and double-click it. See docs/INSTALL.md."
+            gh release create $tag @file --target $env:GITHUB_SHA --title "InvestIQ $tag" --notes "Windows installer: download InvestIQ-Setup.exe and double-click it. See docs/INSTALL.md."
           }
           if ($LASTEXITCODE -ne 0) { throw "publishing the release failed" }
