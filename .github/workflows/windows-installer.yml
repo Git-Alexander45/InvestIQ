@@ -1,5 +1,5 @@
 # Builds InvestIQ-Setup.exe on Windows, installs it silently, and checks the installed app end to
-# end (API, dashboard, dashboard -> API proxy). Tags v* also publish the installer as a release.
+# end (API, dashboard, dashboard -> API proxy). Pushes to main (and v* tags) publish it as a release.
 name: Windows installer
 
 on:
@@ -64,10 +64,19 @@ jobs:
           name: InvestIQ-Setup
           path: packaging/windows/output/InvestIQ-Setup.exe
           if-no-files-found: error
-      - name: Publish release (tags only)
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Publish release (main branch and v* tags)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" packaging/windows/output/InvestIQ-Setup.exe --title "InvestIQ ${{ github.ref_name }}" --notes "Windows installer. Download InvestIQ-Setup.exe and double-click it. See docs/INSTALL.md."
+          $version = (python -c 'import investiq; print(investiq.__version__)').Trim()
+          $tag = "v$version"
+          $file = 'packaging/windows/output/InvestIQ-Setup.exe'
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $file --clobber
+          } else {
+            gh release create $tag $file --target $env:GITHUB_SHA --title "InvestIQ $tag" --notes "Windows installer: download InvestIQ-Setup.exe and double-click it. See docs/INSTALL.md."
+          }
+          if ($LASTEXITCODE -ne 0) { throw "publishing the release failed" }

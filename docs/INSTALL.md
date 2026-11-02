@@ -1,5 +1,28 @@
 # Installing InvestIQ on Windows
 
+## Easiest: the installer (recommended)
+
+1. Download **InvestIQ-Setup.exe** from the repository's Releases page (or, before a release
+   exists, from the latest successful "Windows installer" run under Actions: the
+   `InvestIQ-Setup` artifact is a zip containing the installer).
+2. Double-click it. Windows SmartScreen may say "Windows protected your PC" because the installer
+   is not code-signed: click **More info → Run anyway**.
+3. InvestIQ starts and opens http://127.0.0.1:3000. Next time, open **InvestIQ** from the Start
+   Menu. Keep its window open while you use it; closing the window stops InvestIQ.
+
+What it sets up: the app in `%LOCALAPPDATA%\Programs\InvestIQ`, your private data in
+`%LOCALAPPDATA%\InvestIQ` (database, backups, reports, logs and the `.env` settings file with a
+random API token), and an hourly "InvestIQ\Daily Research" task that runs the research when it is
+due. No administrator rights, Python, Node.js or Docker are needed. Uninstalling removes the app
+and the task but never your data folder.
+
+Add keys with the Start Menu shortcut **InvestIQ keys and settings** (see step 5 below for what
+each key does), then close and reopen InvestIQ.
+
+## Advanced: install from source with Docker and PostgreSQL
+
+The rest of this guide installs from source with the PowerShell scripts.
+
 InvestIQ runs entirely on your computer. Installation takes about 15 minutes, most of it
 downloading. Nothing is purchased and nothing is exposed to the network.
 

@@ -33,6 +33,10 @@ synthetic data, but **has not been exercised live**:
 
 ## Windows-specific items verified only partially
 
+* The installer is not code-signed, so SmartScreen warns on first run ("More info → Run anyway").
+  Signing needs a paid certificate, which is the owner's decision.
+* The installer is built and smoke-tested on GitHub's Windows runners (install, start, API,
+  dashboard, proxy, background run); it has not yet been run on the owner's own PC.
 * The PowerShell scripts were parsed and their helper functions exercised with PowerShell 7 on
   Linux. Docker, Task Scheduler and `icacls` steps can only run on Windows and should be checked
   on the first install.

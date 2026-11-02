@@ -77,6 +77,7 @@ guidance); performance measurements; complete documentation.
 
 | Date | Milestone |
 |---|---|
+| 2026-11-02 | Windows installer (InvestIQ-Setup.exe) with built-in SQLite, built and smoke-tested on GitHub's Windows runners; backend tests also pass on Windows; fixed the data package missing from Git |
 | 2026-10-30 | Stage 9: Windows scripts, Docker Compose, security fixes, performance tests, documentation |
 | 2026-10-30 | Stage 8: dashboard (22 sections) and read-only MCP server |
 | 2026-10-30 | Stage 1 completion: API, CLI, scheduler, backups, health |

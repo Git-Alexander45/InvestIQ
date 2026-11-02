@@ -87,10 +87,12 @@ without keys. It is refused when `INVESTIQ_ENV=production` or unless
 `INVESTIQ_ALLOW_SYNTHETIC_DATA=true`, and the dashboard shows a banner whenever synthetic data is
 in use.
 
-## D16. Desktop app wrapper deferred
-The spec mentions Tauri/Electron as optional. A browser tab on 127.0.0.1 provides everything
-needed; a wrapper adds a Rust or Electron toolchain and an update mechanism. Revisit once the
-product is stable.
+## D16. Desktop app: installer plus browser dashboard (no Tauri/Electron)
+Superseded on 2026-11-02 at the owner's request for "an exe to download and open". The Windows
+app is a PyInstaller build of the backend with a bundled Node.js running the Next.js standalone
+dashboard, packaged by Inno Setup as a per-user `InvestIQ-Setup.exe` (no administrator rights).
+The dashboard still opens in the browser on 127.0.0.1; a native window wrapper (Tauri/Electron)
+remains deferred because it adds a toolchain without changing what the owner can do.
 
 ## D17. Email through Resend, SMTP or outbox
 Without credentials, reports are written as `.eml` files to the outbox folder so nothing is lost
@@ -105,3 +107,10 @@ price chart without another library.
 ## D19. Provider call cap is a preference
 Free tiers limit calls per day. `max_provider_calls_per_cycle` (default 600) protects quotas; the
 first runs backfill history gradually. Synthetic data has no cap.
+
+## D20. Built-in SQLite database in the Windows app
+Chosen by the owner on 2026-11-02 (recommended option) so the installer needs nothing else
+installed: no Docker, no PostgreSQL service. One owner's data volume fits SQLite easily, all tests
+run on it, and migration 0003 adds the same history-protection triggers PostgreSQL has. The
+Docker/PostgreSQL setup (scripts/windows, docker-compose.yml) stays supported for anyone who
+prefers it; the code is the same.

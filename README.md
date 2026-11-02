@@ -14,7 +14,10 @@ brokerage credentials.
 
 ## Quick start (Windows)
 
-Prerequisites: Docker Desktop, Python 3.12+, Node.js 20+, Git.
+**Installer:** download `InvestIQ-Setup.exe` (Releases page, or the `InvestIQ-Setup` artifact of
+the latest "Windows installer" Actions run) and double-click it. Nothing else to install.
+
+**From source** (Docker + PostgreSQL). Prerequisites: Docker Desktop, Python 3.12+, Node.js 20+, Git.
 
 ```powershell
 git clone https://github.com/Git-Alexander45/InvestIQ.git
