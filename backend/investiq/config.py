@@ -8,6 +8,7 @@ database as versioned records; see ``investiq.services.preferences``.
 from __future__ import annotations
 
 import os
+import sys
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -15,7 +16,8 @@ from typing import Literal
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+# In the packaged Windows app (PyInstaller) bundled files live under sys._MEIPASS.
+REPO_ROOT = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[2]))
 
 
 def _default_env_file() -> str:

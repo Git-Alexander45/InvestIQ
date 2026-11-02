@@ -1,0 +1,73 @@
+# Builds InvestIQ-Setup.exe on Windows, installs it silently, and checks the installed app end to
+# end (API, dashboard, dashboard -> API proxy). Tags v* also publish the installer as a release.
+name: Windows installer
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Backend tests on Windows (SQLite)
+        working-directory: backend
+        run: |
+          python -m pip install --disable-pip-version-check -e ".[dev,mcp]"
+          python -m pytest -q
+
+  installer:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Inno Setup if missing
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+      - name: Build InvestIQ-Setup.exe
+        shell: pwsh
+        run: packaging/windows/build.ps1
+      - name: Install silently and smoke-test the installed app
+        shell: pwsh
+        run: |
+          $p = Start-Process packaging/windows/output/InvestIQ-Setup.exe -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer exit code $($p.ExitCode)" }
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\InvestIQ\InvestIQ.exe'
+          & $exe --smoke-test
+          if ($LASTEXITCODE -ne 0) {
+            Get-ChildItem "$env:LOCALAPPDATA\InvestIQ\data\logs" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "--- $($_.Name)"; Get-Content $_.FullName -Tail 80 }
+            throw "smoke test failed"
+          }
+          & (Join-Path $env:LOCALAPPDATA 'Programs\InvestIQ\InvestIQ-Background.exe')
+          Start-Sleep -Seconds 20
+          Get-ChildItem "$env:LOCALAPPDATA\InvestIQ" -Recurse -Depth 1 | Select-Object FullName, Length | Format-Table -AutoSize
+      - uses: actions/upload-artifact@v4
+        with:
+          name: InvestIQ-Setup
+          path: packaging/windows/output/InvestIQ-Setup.exe
+          if-no-files-found: error
+      - name: Publish release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" packaging/windows/output/InvestIQ-Setup.exe --title "InvestIQ ${{ github.ref_name }}" --notes "Windows installer. Download InvestIQ-Setup.exe and double-click it. See docs/INSTALL.md."

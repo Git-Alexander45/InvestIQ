@@ -10,6 +10,8 @@ const securityHeaders = [
 
 const config: NextConfig = {
   poweredByHeader: false,
+  // Self-contained server (.next/standalone) that the Windows app runs with a bundled Node.js.
+  output: "standalone",
   reactStrictMode: true,
   async headers() {
     return [
